@@ -7,3 +7,11 @@ __pycache__/
 *.png
 *.txt
 data/Reddit/raw/
+
+*.sh
+*.lnk
+
+# Arquivos de contexto interno
+contexto_projeto.md
+Tarefa 1 - enunciado.pdf
+metadados.txt

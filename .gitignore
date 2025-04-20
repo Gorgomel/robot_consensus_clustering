@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.npy
+*.npz
+*.csv
+*.graphml
+*.png
+*.txt
+data/Reddit/raw/

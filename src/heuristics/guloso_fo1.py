@@ -1,88 +1,92 @@
-# src/heuristicas/clusterizar_guloso_fo1.py
+import os
+import time
 import numpy as np
 import networkx as nx
-import time, os, argparse
-from config import RAIO_COMUNICACAO
-from scipy.spatial import cKDTree
-from plots import plot_scatter
+import matplotlib.pyplot as plt
+from tools.io_utils import gerar_nome_pasta
 
-def carregar_grafo(base_dir):
-    path = os.path.join(base_dir,'data','grafo','grafo_epsilon.graphml')
-    if not os.path.exists(path):
-        raise FileNotFoundError(path)
-    G = nx.read_graphml(path)
-    return G
+def fo1(clusters, G):
+    return sum(min(G.nodes[n]["vel"] for n in c) * len(c) for c in clusters)
 
-def greedy_cluster_fo1(G, tol_vel=5.0):
-    visit, clusters = set(), []
-    for u in G.nodes():
-        if u in visit: continue
-        visit.add(u)
-        c = {u}
-        queue=[u]
-        v0 = float(G.nodes[u].get('vel',0))
-        while queue:
-            x = queue.pop()
-            for w in G[x]:
-                if w in visit: continue
-                v_w = float(G.nodes[w].get('vel',0))
-                if abs(v0-v_w)<=tol_vel:
-                    c.add(w); visit.add(w); queue.append(w)
-        clusters.append(list(c))
+def clusterizacao_gulosa_fo1(G):
+    visitado = set()
+    clusters = []
+
+    for no in G.nodes:
+        if no in visitado:
+            continue
+        cluster = set([no])
+        fila = [no]
+        v_base = G.nodes[no]["vel"]
+        while fila:
+            atual = fila.pop()
+            visitado.add(atual)
+            for viz in G.neighbors(atual):
+                if viz in visitado:
+                    continue
+                if abs(G.nodes[viz]["vel"] - v_base) <= 5:
+                    cluster.add(viz)
+                    fila.append(viz)
+                    visitado.add(viz)
+        clusters.append(list(cluster))
     return clusters
 
-def fo1(clusters,G):
-    total=0
-    for C in clusters:
-        vs=[float(G.nodes[n]['vel']) for n in C]
-        total+= min(vs)*len(C)
-    return total
+def carregar_grafo_e_dados(seed, num_robos, raio):
+    base_nome = f"robos_{num_robos}_seed{seed}"
+    grafo_dir = os.path.join("data", "grafo", f"epsilon_{raio:.1f}_{num_robos}_seed{seed}")
+    grafo_path = os.path.join(grafo_dir, "grafo.graphml")
+    dados_path = os.path.join("data", "sinteticos", base_nome, "robos.npy")
 
-if __name__=="__main__":
-    p=argparse.ArgumentParser()
-    p.add_argument('--tol', type=float, default=5.0)
-    args=p.parse_args()
+    if not os.path.exists(grafo_path) or not os.path.exists(dados_path):
+        raise FileNotFoundError("Grafo ou dados não encontrados.")
 
-    base = os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..'))
-    print("[guloso] carregando grafo…")
-    G = carregar_grafo(base)
+    G = nx.read_graphml(grafo_path)
+    dados = np.load(dados_path, allow_pickle=True)
+    for i, estado in enumerate(dados):
+        G.nodes[str(i)]["x"] = float(estado[0])
+        G.nodes[str(i)]["y"] = float(estado[1])
+        G.nodes[str(i)]["vel"] = float(estado[2])
+        G.nodes[str(i)]["bat"] = float(estado[4])
+    return G, dados
 
-    # injete velocidades no grafo, se ausentes
-    robos = np.load(os.path.join(base,'data','sinteticos','robos.npy'))
-    for i,row in enumerate(robos):
-        if 'vel' not in G.nodes[str(i)]:
-            G.nodes[str(i)]['vel']= float(row[2])
+def salvar_resultados(clusters, G, tempo_exec, fo1_valor, seed, num_robos, raio):
+    pasta = os.path.join("data", "cluster", "guloso_area_maior")
+    os.makedirs(pasta, exist_ok=True)
 
-    print("[guloso] executando clusterização…")
-    t0=time.time()
-    clusters=greedy_cluster_fo1(G, args.tol)
-    dt=time.time()-t0
+    labels = np.zeros(len(G.nodes), dtype=int)
+    for idx, cluster in enumerate(clusters):
+        for n in cluster:
+            labels[int(n)] = idx
+    np.save(os.path.join(pasta, "guloso_labels.npy"), labels)
 
-    score=fo1(clusters,G)
-    print(f"[RESULTADO] C={len(clusters)}  FO1={score:.2f}  tempo={dt:.3f}s")
+    # Visualização
+    pos = {n: (float(G.nodes[n]["x"]), float(G.nodes[n]["y"])) for n in G.nodes}
+    cores = plt.cm.tab20(np.linspace(0, 1, len(clusters)))
+    plt.figure(figsize=(10, 8))
+    for i, cluster in enumerate(clusters):
+        xs = [pos[n][0] for n in cluster]
+        ys = [pos[n][1] for n in cluster]
+        plt.scatter(xs, ys, s=5, color=cores[i % len(cores)])
+    plt.title("Clusterização Gulosa (FO₁)")
+    plt.tight_layout()
+    plt.savefig(os.path.join(pasta, "guloso_clusters.png"))
+    plt.close()
 
-    # saída
-    outdir=os.path.join(base,'data','cluster','guloso')
-    os.makedirs(outdir,exist_ok=True)
+    with open(os.path.join(pasta, "guloso_resumo.txt"), "w") as f:
+        f.write(f"Total de clusters: {len(clusters)}\n")
+        f.write(f"Valor da função FO₁: {fo1_valor:.2f}\n")
+        f.write(f"Tempo de execução: {tempo_exec:.2f} segundos\n")
 
-    # plot
-    xs=[float(G.nodes[n]['x']) for n in G.nodes()]
-    ys=[float(G.nodes[n]['y']) for n in G.nodes()]
-    # cor por cluster
-    label = np.zeros(G.number_of_nodes(),dtype=int)
-    for idx,C in enumerate(clusters):
-        for u in C: label[int(u)] = idx
-    plot_scatter(xs,ys,c=label, cmap='tab20',
-                 title="Guloso FO1",xlabel="X",ylabel="Y",
-                 out_path=os.path.join(outdir,'clusters.png'))
+def executar_guloso_fo1(num_robos, seed, raio=50):
+    print("[guloso_fo1] Carregando grafo e dados...")
+    G, _ = carregar_grafo_e_dados(seed=seed, num_robos=num_robos, raio=raio)
 
-    # salvar rótulos e resumo
-    np.save(os.path.join(outdir,'labels.npy'), label)
-    with open(os.path.join(outdir,'resumo.txt'),'w') as f:
-        f.write(f"Clusters: {len(clusters)}\n")
-        f.write(f"FO1: {score:.2f}\n")
-        f.write(f"Tempo: {dt:.3f}s\n")
-        sizes=sorted([len(C) for C in clusters], reverse=True)
-        f.write("Maiores clusters: "+",".join(map(str,sizes[:5]))+"\n")
+    print("[guloso_fo1] Executando heurística gulosa (FO₁)...")
+    inicio = time.time()
+    clusters = clusterizacao_gulosa_fo1(G)
+    tempo_exec = time.time() - inicio
+    fo1_valor = fo1(clusters, G)
 
-    print(f"[guloso] resultados em {outdir}")
+    print(f"[RESULTADO] Clusters: {len(clusters)} | FO₁ = {fo1_valor:.2f} | Tempo = {tempo_exec:.2f}s")
+    salvar_resultados(clusters, G, tempo_exec, fo1_valor, seed, num_robos, raio)
+    print(f"[guloso_fo1] Resultados salvos com sucesso.")

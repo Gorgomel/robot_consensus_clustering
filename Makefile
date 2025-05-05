@@ -58,7 +58,7 @@ create-venv-win:
 # Sincronizar: WSL → Windows
 sync-win:
 	@echo "\n[make] Sincronizando alterações para Windows..."
-	bash tools/sync_to_windows.sh
+	bash sync_to_windows.sh
 
 # Sincronizar: Windows → WSL
 sync-wsl:

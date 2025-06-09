@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv*
+.vscode/
+*.gz
+*.zip
+data/externo/roadNet-CA.txt.gz
+logs/

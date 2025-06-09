@@ -1,17 +1,54 @@
-venv/
-__pycache__/
-*.npy
-*.npz
-*.csv
-*.graphml
-*.png
-*.txt
-data/Reddit/raw/
+# Ambientes virtuais
+.venv/
+.venv-linux/
 
+# Compilados Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dados gerados (resultados, gráficos, logs)
+data/best_improvement/
+data/cluster/
+data/fisrt_improvement/
+data/grafo/
+data/local_search/
+data/plots/
+data/sinteticos/
+
+# Base externa grande (manter localmente, não subir)
+data/externo/roadNet-CA.txt.gz
+
+# Arquivos de metadados e estrutura
+estrutura_atual.txt
+estrutura_projeto.txt
+metadados.txt
+
+# Arquivos temporários e de backup
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Executáveis ou atalhos do sistema
 *.sh
+*.bat
 *.lnk
+*.exe
+*.dll
+*.so
+*.out
+
+# Arquivos de configuração específicos de IDEs (VSCode, PyCharm etc.)
+.vscode/
+.idea/
+*.code-workspace
+
+# Arquivos ocultos diversos
+.DS_Store
+Thumbs.db
+
 
 # Arquivos de contexto interno
 contexto_projeto.md
-Tarefa 1 - enunciado.pdf
-metadados.txt

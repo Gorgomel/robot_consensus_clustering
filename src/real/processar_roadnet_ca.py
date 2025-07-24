@@ -99,22 +99,31 @@ def salvar_grafo(G, pasta_saida):
 
 def visualizar_grafo(G, pasta_saida):
     print("[4/5] Gerando visualização do grafo...")
-    norm = Normalize(vmin=min(nx.get_node_attributes(G, "vel").values()),
-                     vmax=max(nx.get_node_attributes(G, "vel").values()))
-    cmap = cm.viridis
-    node_colors = [cmap(norm(G.nodes[n]["vel"])) for n in G.nodes]
-    pos_plot = {n: (G.nodes[n]['x'], G.nodes[n]['y']) for n in G.nodes}
 
-    fig, ax = plt.subplots(figsize=(10, 8))
-    nx.draw(G, pos_plot, node_color=node_colors, node_size=5,
-            edge_color="gray", alpha=0.3, width=0.1, ax=ax)
-    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-    sm.set_array([])
-    fig.colorbar(sm, ax=ax, label="Velocidade (log(grau+1) × 10)")
-    ax.set_title("RoadNet-CA (subgrafo) com velocidade estimada")
-    plt.tight_layout()
-    plt.savefig(os.path.join(pasta_saida, "grafo_velocidade.png"), dpi=300)
-    plt.close()
+    # Garantir que os atributos estejam presentes
+    if not all(attr in G.nodes[n] for n in G.nodes for attr in ["vel", "x", "y"]):
+        print("⚠️ Atributos 'vel', 'x' ou 'y' ausentes nos nós. Visualização ignorada.")
+        return
+
+    try:
+        velocidades = nx.get_node_attributes(G, "vel")
+        norm = Normalize(vmin=min(velocidades.values()), vmax=max(velocidades.values()))
+        cmap = cm.viridis
+        node_colors = [cmap(norm(velocidades[n])) for n in G.nodes]
+        pos_plot = {n: (G.nodes[n]['x'], G.nodes[n]['y']) for n in G.nodes}
+
+        fig, ax = plt.subplots(figsize=(10, 8))
+        nx.draw(G, pos_plot, node_color=node_colors, node_size=5,
+                edge_color="gray", alpha=0.3, width=0.1, ax=ax)
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
+        fig.colorbar(sm, ax=ax, label="Velocidade (log(grau+1) × 10)")
+        ax.set_title("RoadNet-CA (subgrafo) com velocidade estimada")
+        plt.tight_layout()
+        plt.savefig(os.path.join(pasta_saida, "grafo_velocidade.png"), dpi=300)
+        plt.close()
+    except Exception as e:
+        print(f"❌ Erro ao gerar visualização: {e}")
 
 
 def main():

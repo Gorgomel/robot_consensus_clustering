@@ -13,17 +13,22 @@ Este arquivo define todos os parâmetros fixos usados por:
 # =====================================================
 # Número de robôs por instância
 NUM_ROBOS = {
-    'small': 300,     # debug / validação manual
-    'medium': 3000,   # comparação entre heurísticas
-    'large': 10000,   # avaliação de escalabilidade
+    'small': 100,      # debug / validação manual
+    'medium': 500,     # comparação entre heurísticas
+    'large': 1000,     # avaliação intermediária
+    'xlarge': 5000,    # avaliação avançada
+    'xxlarge': 10000   # avaliação de escalabilidade
 }
 
 # Tamanho da área (unidades de coordenadas) correspondente
 TAMANHO_AREA = {
-    'small': 300,     # 300×300
-    'medium': 1000,   # 1000×1000
-    'large': 3000,    # 3000×3000
+    'small': 300,      # 300×300
+    'medium': 1000,    # 1000×1000
+    'large': 2000,     # 2000×2000
+    'xlarge': 3000,    # 3000×3000
+    'xxlarge': 4000    # 4000×4000 (ou maior, se desejar)
 }
+
 
 # =====================================================
 # Geração de dados sintéticos

@@ -8,12 +8,12 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from pathlib import Path
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
 
 from config import SEED, NUM_ROBOS, DELTA_V
-
 
 def print_header(args):
     print("\n" + "=" * 60)
@@ -24,10 +24,8 @@ def print_header(args):
     print(f"  Iterações:{args.max_iter}")
     print("=" * 60 + "\n")
 
-
 def print_iteracao(i, fo1, delta, tempo):
     print(f"[Iteração {i:02d}] FO₁ = {fo1:.2f} | Δ = {delta:.4f} | Tempo acumulado = {tempo:.4f}s")
-
 
 def print_footer(fo1, tempo_total, clusters, saida):
     print("\n" + "=" * 60)
@@ -38,35 +36,37 @@ def print_footer(fo1, tempo_total, clusters, saida):
     print(f"  Resultados em:    {saida}")
     print("=" * 60 + "\n")
 
-
 def carregar_instancia(tipo, instancia):
-    if tipo == 'sintetico':
-        pasta = f"data/grafo/epsilon_50.0_{NUM_ROBOS[instancia]}_seed{SEED}"
-        grafo_path = os.path.join(ROOT, pasta, "grafo.graphml")
-        cluster_path = os.path.join(ROOT, "data", "cluster", f"sintetico_{instancia}_guloso_fo1")
-    else:
-        pasta = "data/grafo/roadnet_ca"
-        grafo_path = os.path.join(ROOT, pasta, "grafo.graphml")
-        cluster_path = os.path.join(ROOT, "data", "cluster", "real_guloso_fo1")
 
-    G = nx.read_graphml(grafo_path)
+    if tipo == 'sintetico':
+        pasta_grafo = Path(ROOT) / "data" / "grafo" / f"epsilon_50.0_{NUM_ROBOS[instancia]}_seed{SEED}"
+    else:
+        pasta_grafo = Path(ROOT) / "data" / "grafo" / "roadnet_ca"
+    grafo_path = pasta_grafo / "grafo.graphml"
+
+    G = nx.read_graphml(str(grafo_path))
     for n in G.nodes:
-        for attr in ["x", "y", "vel", "theta", "bat"]:
+        for attr in ['x', 'y', 'vel', 'theta', 'bat']:
             G.nodes[n][attr] = float(G.nodes[n][attr])
 
-    with open(os.path.join(cluster_path, "clusters.pkl"), "rb") as f:
+    if tipo == 'sintetico':
+        cluster_dir = Path(ROOT) / "data" / "first_improvement" / f"{tipo}_{instancia}_first"
+    else:
+        cluster_dir = Path(ROOT) / "data" / "first_improvement" / f"{tipo}_real_first"
+
+    clusters_pkl = cluster_dir / "clusters.pkl"
+    if not clusters_pkl.exists():
+        raise FileNotFoundError(f"Arquivo de clusters não encontrado em {clusters_pkl}")
+
+    with open(clusters_pkl, "rb") as f:
         clusters = pickle.load(f)
 
-    exemplo_node = next(iter(G.nodes))
-    if isinstance(exemplo_node, str):
-        clusters = [[str(n) for n in c] for c in clusters]
-    else:
-        clusters = [[int(n) for n in c] for c in clusters]
+    clusters = [[str(n) for n in c] for c in clusters]
 
-    return G, clusters, tipo, instancia
+    return G, clusters
 
 
-def mover_vizinho_first(G, clusters, timeout_por_iter=180, max_iter=150):
+def mover_vizinho_first(G, clusters, timeout_por_iter=180, max_iter=500):
     iteracao = 0
     tempo_total = 0
     fo1_por_iter = []
@@ -136,8 +136,7 @@ def mover_vizinho_first(G, clusters, timeout_por_iter=180, max_iter=150):
         fo1_por_iter.append(fo_atual)
         print_iteracao(iteracao, fo_atual, melhor_delta, tempo_total)
 
-    return clusters, fo_atual, fo1_por_iter
-
+    return clusters, fo_atual, tempo_total, fo1_por_iter
 
 def salvar_saida(G, clusters, fo1, tempo, tipo, instancia, modo, fo1_iters, output_dir):
     saida = os.path.join(output_dir, f"{tipo}_{instancia}_{modo}")
@@ -148,17 +147,20 @@ def salvar_saida(G, clusters, fo1, tempo, tipo, instancia, modo, fo1_iters, outp
         f.write(f"FO1: {fo1:.2f}\n")
         f.write(f"Tempo: {tempo:.2f} s\n")
 
-    labels = np.full(len(G.nodes), -1)
+    labels = {str(n): -1 for n in G.nodes}
     for cid, cluster in enumerate(clusters):
         for n in cluster:
-            labels[int(n)] = cid
-    np.save(os.path.join(saida, "labels.npy"), labels)
+            labels[str(n)] = cid
+
+    with open(os.path.join(saida, "labels.npy"), "wb") as f:
+        np.save(f, labels, allow_pickle=True)
     with open(os.path.join(saida, "clusters.pkl"), "wb") as f:
         pickle.dump(clusters, f)
 
     pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
+    cores = [labels[str(n)] for n in G.nodes]
     plt.figure(figsize=(7, 6))
-    plt.scatter(pos[:, 0], pos[:, 1], c=labels, cmap='tab20', s=5, alpha=0.7)
+    plt.scatter(pos[:, 0], pos[:, 1], c=cores, cmap='tab20', s=5, alpha=0.7)
     plt.title(f"Clusters - Refinamento ({modo})")
     plt.xlabel("X")
     plt.ylabel("Y")
@@ -186,15 +188,14 @@ def salvar_saida(G, clusters, fo1, tempo, tipo, instancia, modo, fo1_iters, outp
 
     return saida
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tipo", choices=["sintetico", "real"], required=True)
-    parser.add_argument("--instancia", choices=list(NUM_ROBOS.keys()))
+    parser.add_argument("--instancia", choices=list(NUM_ROBOS.keys()) + ["real"])
     parser.add_argument("--modo", choices=["first"], default="first")
     parser.add_argument("--timeout_iter", type=int, default=180)
-    parser.add_argument("--max_iter", type=int, default=150)
-    parser.add_argument("--output_dir", default=os.path.join(ROOT, "data", "fisrt_improvement"))
+    parser.add_argument("--max_iter", type=int, default=500)
+    parser.add_argument("--output_dir", default=os.path.join(ROOT, "data", "first_improvement"))
     args = parser.parse_args()
 
     if args.tipo == "sintetico" and not args.instancia:
@@ -206,7 +207,7 @@ def main():
     clusters = [c.copy() for c in clusters_iniciais]
 
     t0 = time.time()
-    clusters, fo1, fo1_iters = mover_vizinho_first(
+    clusters, fo1, tempo_total, fo1_iters = mover_vizinho_first(
         G, clusters,
         timeout_por_iter=args.timeout_iter,
         max_iter=args.max_iter
@@ -215,7 +216,6 @@ def main():
 
     pasta_saida = salvar_saida(G, clusters, fo1, tempo_total, tipo, instancia, args.modo, fo1_iters, args.output_dir)
     print_footer(fo1, tempo_total, clusters, pasta_saida)
-
 
 if __name__ == "__main__":
     main()

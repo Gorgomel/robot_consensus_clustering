@@ -1,0 +1,3 @@
+FO₁ final: 23043.64
+Tempo: 0.35s
+Clusters: 264

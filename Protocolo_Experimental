@@ -1,0 +1,83 @@
+### **Estrutura Proposta para o Protocolo Experimental**
+
+**Título do Projeto:** Heurísticas e Meta-heurísticas para Maximizar a Velocidade Segura em Clusterização de Veículos Autônomos
+
+**Versão do Documento:** 1.0 (Data: 09/07/2025)
+
+-----
+
+**1. Resumo do Problema e Objetivos**
+
+  * **Problema Central:** Maximizar a função objetivo `$FO_1$` (velocidade segura agregada) em um grafo `ε-ball` de veículos autônomos.
+  * **Restrições Rígidas:**
+      * Conectividade topológica de cada cluster.
+      * Compatibilidade de velocidade (`Δv`) entre todos os membros de um cluster.
+  * **Objetivo Principal:** Realizar uma análise comparativa sistemática de diferentes paradigmas de meta-heurísticas para encontrar a abordagem de melhor performance para este problema.
+  * **Objetivo Secundário:** Identificar a meta-heurística com o melhor **custo-benefício** (equilíbrio entre alta qualidade de solução e baixo tempo de execução).
+
+-----
+
+**2. Evolução da Metodologia**
+
+  * **2.1. Abordagem Inicial (Baseada no pré-print `incompleto.pdf`)**
+
+      * **Algoritmos considerados:** Guloso, Busca Local (FI/BI) e GRASP.
+      * **Motivo:** Abordagem inicial para validar a formulação do problema e testar uma heurística construtiva e uma meta-heurística simples.
+
+  * **2.2. Expansão do Escopo (Decisão de 09/07/2025)**
+
+      * **Novos Algoritmos Incluídos:** Simulated Annealing (SA), Iterated Local Search (ILS), Algoritmo Genético (GA).
+      * **Motivo:** Para fortalecer o artigo, decidimos incluir algoritmos que representassem os três principais paradigmas de meta-heurísticas (construtivo, trajetória, populacional), permitindo uma análise comparativa mais rica e completa.
+
+  * **2.3. Adição do ILS (Decisão de 09/07/2025)**
+
+      * **Algoritmo Incluído:** Iterated Local Search (ILS).
+      * **Motivo:** Após a implementação dos outros, surgiu a necessidade de testar uma meta-heurística especificamente conhecida por seu excelente custo-benefício, para responder diretamente ao objetivo secundário da pesquisa.
+
+-----
+
+**3. Análise dos Benchmarks e Evolução da Hipótese**
+
+  * **3.1. Análise da Geração de Dados Inicial (Área Fixa)**
+
+      * **Observação:** A análise dos arquivos `stats.txt` para as instâncias `small` a `xxlarge` revelou que, ao manter a área fixa e aumentar o número de nós, a densidade de conexões (`grau médio`) não cresce de forma monotônica. Ela atinge um **pico na instância `large` (1000 nós)** e depois diminui ligeiramente.
+      * **Implicação:** A complexidade do grafo não é apenas uma função da escala (`|V|`), mas de uma interação não-linear com a densidade.
+
+  * **3.2. Hipótese Inicial (Pós-análise da topologia)**
+
+      * A performance do Guloso seria competitiva apenas em extremos (muito esparso ou talvez muito denso/massivo).
+      * A superioridade das meta-heurísticas seria mais evidente nos cenários de **complexidade intermediária e alta (`medium` e `large`)**.
+
+  * **3.3. Decisão de Refinar os Experimentos (Decisão de 09/07/2025)**
+
+      * **Motivo:** Para testar a robustez da hipótese e isolar o efeito da **escala** vs. **densidade**, decidimos criar uma matriz de experimentos 2D.
+
+-----
+
+**4. Protocolo Experimental Final (A Matriz de Cenários)**
+
+  * **4.1. Eixos de Análise:**
+
+      * **Eixo de Escala (`|V|`):** {100, 1.000, 10.000} nós.
+      * **Eixo de Densidade (Grau Médio Alvo):** {Baixa (≈4), Média (≈8), Alta (≈12)}.
+
+  * **4.2. Matriz de Instâncias a Serem Geradas:**
+
+      * A tabela a seguir define o lado `L` da área quadrada para cada um dos 9 cenários, calculada para um raio `ε=50`.
+
+| | Densidade Baixa\<br\>(Grau Médio \~4) | Densidade Média\<br\>(Grau Médio \~8) | Densidade Alta\<br\>(Grau Médio \~12) |
+| :--- | :--- | :--- | :--- |
+| **Pequena (100 nós)** | Lado L = 443 m | Lado L = 313 m | Lado L = 256 m |
+| **Média (1000 nós)**| Lado L = 1401 m| Lado L = 991 m | Lado L = 809 m |
+| **Grande (10000 nós)**| Lado L = 4431 m| Lado L = 3133 m| Lado L = 2558 m |
+
+-----
+
+**5. Plano de Análise dos Resultados Finais**
+
+Os resultados do `pipeline.py` sobre as 9 instâncias da matriz serão analisados da seguinte forma:
+
+1.  **Tabelas Consolidadas:** Geração de tabelas com `$FO_1$`, tempo, nº de clusters, ARI e NMI (média e desvio padrão) para cada algoritmo em cada um dos 9 cenários.
+2.  **Gráfico de Custo-Benefício:** Gráfico de dispersão (Scatter Plot) de `$FO_1$` vs. Tempo para visualizar o trade-off.
+3.  **Gráficos de Convergência:** Gráficos de linha da melhor `$FO_1$` por iteração/geração para SA, ILS e GA em instâncias representativas de cada densidade.
+4.  **Análise Estatística:** Aplicação de testes não paramétricos (Friedman/Wilcoxon) para validar a significância das diferenças de desempenho.

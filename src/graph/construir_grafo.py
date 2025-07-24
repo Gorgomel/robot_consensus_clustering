@@ -11,8 +11,16 @@ from matplotlib import cm
 import shutil
 import time
 
-from config import NUM_ROBOS, SEED, RAIO_COMUNICACAO
-
+# Atualização para suportar instâncias até 10000 robôs
+NUM_ROBOS = {
+    "small": 100,
+    "medium": 500,
+    "large": 1000,
+    "xlarge": 5000,
+    "xxlarge": 10000,
+}
+SEED = 42
+RAIO_COMUNICACAO = 50
 
 def print_header(instancia):
     print("\n" + "=" * 60)
@@ -22,7 +30,6 @@ def print_header(instancia):
     print(f"  Seed: {SEED} | Raio inicial: {RAIO_COMUNICACAO}")
     print("=" * 60 + "\n")
 
-
 def print_footer(grafo_dir, tempo_total, stats):
     print("\n" + "=" * 60)
     print("  GRAFO CONSTRUÍDO COM SUCESSO")
@@ -31,7 +38,6 @@ def print_footer(grafo_dir, tempo_total, stats):
         print(f"  {k}: {v}")
     print(f"  Tempo total: {tempo_total:.4f} segundos")
     print("=" * 60 + "\n")
-
 
 def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1, instancia=None):
     t0 = time.time()
@@ -90,7 +96,6 @@ def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1,
     print("[5/7] Gerando visualizações...")
     pos_dict = {i: (estados[i, 0], estados[i, 1]) for i in range(num_robos)}
 
-    # Amostra
     amostra = list(G.nodes)[:1000]
     Gs = G.subgraph(amostra)
     pos_s = {i: pos_dict[i] for i in amostra}
@@ -101,7 +106,6 @@ def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1,
     plt.savefig(os.path.join(grafo_dir, "grafo_amostra.png"), dpi=300)
     plt.close()
 
-    # Colorido por velocidade
     norm = Normalize(vmin=np.min(velocidades), vmax=np.max(velocidades))
     cmap = cm.viridis
     node_colors = [cmap(norm(G.nodes[i]["vel"])) for i in G.nodes]
@@ -116,7 +120,6 @@ def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1,
     plt.savefig(os.path.join(grafo_dir, "grafo_velocidade.png"), dpi=300)
     plt.close(fig)
 
-    # Heatmap de arestas
     midx, midy = [], []
     for u, v in G.edges():
         x1, y1 = pos_dict[u]
@@ -131,7 +134,6 @@ def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1,
     plt.savefig(os.path.join(grafo_dir, "heatmap_arestas.png"), dpi=300)
     plt.close()
 
-    # Histograma de grau
     plt.figure(figsize=(6,4))
     plt.hist(graus, bins=30, edgecolor="black")
     plt.xlabel("Grau")
@@ -147,12 +149,16 @@ def construir_grafo_epsilon_ball(num_robos, seed, raio, raio_max=200, passo=1.1,
     tempo_total = time.time() - t0
     print_footer(grafo_dir, tempo_total, stats)
 
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--instancia", choices=list(NUM_ROBOS.keys()), required=True)
+    parser.add_argument("--tipo", choices=["sintetico", "real"], default="sintetico")
     args = parser.parse_args()
+
+    if args.tipo == "real":
+        print("[AVISO] Ignorando construção de grafo para dados reais.")
+        sys.exit(0)
 
     print_header(args.instancia)
     num = NUM_ROBOS[args.instancia]

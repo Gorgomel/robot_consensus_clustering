@@ -15,7 +15,6 @@ sys.path.insert(0, ROOT_DIR)
 
 from config import DELTA_V, SEED, NUM_ROBOS
 
-
 def print_header(args):
     print("\n" + "=" * 60)
     print(f"  EXECUÇÃO INICIADA")
@@ -23,7 +22,6 @@ def print_header(args):
     print(f"  Tipo:     {args.tipo}")
     print(f"  Instância:{args.instancia}")
     print("=" * 60 + "\n")
-
 
 def print_footer(fo1, tempo_total, clusters, pasta_saida):
     print("\n" + "=" * 60)
@@ -33,7 +31,6 @@ def print_footer(fo1, tempo_total, clusters, pasta_saida):
     print(f"  Tempo total:      {tempo_total:.4f} segundos")
     print(f"  Resultados em:    {pasta_saida}")
     print("=" * 60 + "\n")
-
 
 def carregar_grafo_sintetico(instancia):
     pasta_grafo = os.path.join(ROOT_DIR, 'data', 'grafo', f"epsilon_50.0_{NUM_ROBOS[instancia]}_seed{SEED}")
@@ -55,7 +52,6 @@ def carregar_grafo_sintetico(instancia):
             G.add_edge(int(u), int(v))
     return G
 
-
 def carregar_grafo_real():
     graphml_path = os.path.join(ROOT_DIR, 'data', 'grafo', 'roadnet_ca', 'grafo.graphml')
     if not os.path.exists(graphml_path):
@@ -68,7 +64,6 @@ def carregar_grafo_real():
         G.nodes[n]['theta'] = float(G.nodes[n]['theta'])
         G.nodes[n]['bat']   = float(G.nodes[n]['bat'])
     return G
-
 
 def guloso_clusterizacao(G):
     clusters = []
@@ -85,10 +80,8 @@ def guloso_clusterizacao(G):
         clusters.append(cluster)
     return clusters
 
-
 def calcular_fo1(G, clusters):
     return sum(min(G.nodes[n]['vel'] for n in c) * len(c) for c in clusters if c)
-
 
 def salvar_resultados(G, clusters, fo1, tempo_exec, pasta_saida):
     os.makedirs(pasta_saida, exist_ok=True)
@@ -98,7 +91,6 @@ def salvar_resultados(G, clusters, fo1, tempo_exec, pasta_saida):
         f.write(f"FO1 = {fo1:.2f}\n")
         f.write(f"Tempo (s) = {tempo_exec:.4f}\n")
 
-    # Histograma de tamanhos
     sizes = [len(c) for c in clusters]
     fig, ax = plt.subplots()
     ax.hist(sizes, bins=30, color='purple', edgecolor='black')
@@ -109,7 +101,6 @@ def salvar_resultados(G, clusters, fo1, tempo_exec, pasta_saida):
     plt.savefig(os.path.join(pasta_saida, 'hist_tamanhos.png'))
     plt.close()
 
-    # Histograma das velocidades mínimas por cluster
     min_vels = [min(G.nodes[n]['vel'] for n in c) for c in clusters if c]
     plt.figure(figsize=(6, 4))
     plt.hist(min_vels, bins=30, edgecolor="black", color="orange")
@@ -120,12 +111,14 @@ def salvar_resultados(G, clusters, fo1, tempo_exec, pasta_saida):
     plt.savefig(os.path.join(pasta_saida, 'hist_min_velocidade.png'))
     plt.close()
 
-    # Scatter plot
-    pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
-    labels = np.full(len(G.nodes), -1)
+    node_list = list(G.nodes)
+    node_index = {node: i for i, node in enumerate(node_list)}
+    pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in node_list])
+    labels = np.full(len(node_list), -1)
     for cid, cluster in enumerate(clusters):
         for n in cluster:
-            labels[int(n)] = cid
+            labels[node_index[n]] = cid
+
     plt.figure(figsize=(7, 6))
     plt.scatter(pos[:, 0], pos[:, 1], c=labels, cmap='tab20', s=5, alpha=0.7)
     plt.title("Clusters - Posição dos vértices")
@@ -135,18 +128,16 @@ def salvar_resultados(G, clusters, fo1, tempo_exec, pasta_saida):
     plt.savefig(os.path.join(pasta_saida, 'scatter_clusters.png'), dpi=300)
     plt.close()
 
-    # Salvar labels e clusters
     np.save(os.path.join(pasta_saida, "labels.npy"), labels)
+    np.save(os.path.join(pasta_saida, "node_list.npy"), node_list)
     with open(os.path.join(pasta_saida, "clusters.pkl"), "wb") as f:
         pickle.dump(clusters, f)
-
 
 def main():
     parser = argparse.ArgumentParser(description='Heurística Gulosa FO₁')
     parser.add_argument('--tipo', choices=['sintetico', 'real'], required=True,
                         help='Tipo de instância: sintetico ou real')
-    parser.add_argument('--instancia', choices=list(NUM_ROBOS.keys()),
-                        help='Nome da instância sintética (ex: small, medium, large)')
+    parser.add_argument('--instancia', help='Nome da instância sintética (ex: small, medium, xxlarge)')
     parser.add_argument('--output_dir', default=os.path.join(ROOT_DIR, 'data', 'cluster'),
                         help='Diretório base para salvar resultados')
     args = parser.parse_args()
@@ -170,7 +161,6 @@ def main():
 
     salvar_resultados(G, clusters, fo1, tempo_exec, pasta)
     print_footer(fo1, tempo_exec, clusters, pasta)
-
 
 if __name__ == '__main__':
     main()

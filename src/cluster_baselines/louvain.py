@@ -1,38 +1,55 @@
 import os
+import argparse
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from community import community_louvain  # pip install python-louvain
+from community import community_louvain
+from datetime import datetime
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-grafo_path = os.path.join(base_dir, 'data', 'grafo', 'grafo_area_maior.graphml')
-saida_dir = os.path.join(base_dir, 'data', 'cluster', 'louvain')
-os.makedirs(saida_dir, exist_ok=True)
 
-G = nx.read_graphml(grafo_path)
-G = nx.convert_node_labels_to_integers(G)  # garante nós numerados de 0 a N-1
+def carregar_grafo(tipo, instancia):
+    if tipo == "sintetico":
+        grafo_path = f"data/grafo/epsilon_50.0_{instancia}_seed42/grafo.graphml"
+    else:
+        grafo_path = "data/grafo/roadnet_ca/grafo.graphml"
 
-# Louvain
-print("[Louvain] Rodando detecção de comunidades...")
-partition = community_louvain.best_partition(G)
-labels = np.array([partition[i] for i in range(len(partition))])
+    G = nx.read_graphml(grafo_path)
+    for n in G.nodes:
+        for attr in ['x', 'y', 'vel']:
+            G.nodes[n][attr] = float(G.nodes[n][attr])
+    return G
 
-np.save(os.path.join(saida_dir, 'louvain_labels.npy'), labels)
 
-pos = {i: (float(G.nodes[i]['x']), float(G.nodes[i]['y'])) for i in G.nodes}
-plt.figure(figsize=(10, 8))
-nx.draw(G, pos, node_color=labels, node_size=25, cmap='tab10', with_labels=False, edge_color='lightgray')
-plt.title("Louvain - Clusterização dos Robôs (grafo de conectividade)")
-plt.tight_layout()
-plt.savefig(os.path.join(saida_dir, 'louvain_clusters.png'))
-plt.close()
+def salvar_resultados(G, particao, tipo, instancia):
+    labels = np.array([particao[str(n)] for n in G.nodes])
 
-with open(os.path.join(saida_dir, 'louvain_resumo.txt'), 'w', encoding='utf-8') as f:
-    f.write("Clusterização Louvain - Grafo dos Robôs\n\n")
-    f.write(f"Nós: {G.number_of_nodes()}\n")
-    f.write(f"Arestas: {G.number_of_edges()}\n")
-    unique, counts = np.unique(labels, return_counts=True)
-    for u, c in zip(unique, counts):
-        f.write(f"Cluster {u}: {c} nós\n")
+    dt = datetime.now().strftime("%Y%m%d_%H%M%S")
+    outdir = f"data/baselines/louvain_{tipo}_{instancia}_{dt}"
+    os.makedirs(outdir, exist_ok=True)
 
-print("[Louvain] Concluído e arquivos salvos.")
+    np.save(os.path.join(outdir, "louvain_labels.npy"), labels)
+
+    # Scatter
+    pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
+    plt.figure(figsize=(6, 6))
+    plt.scatter(pos[:, 0], pos[:, 1], c=labels, s=5, cmap='tab20')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(os.path.join(outdir, "louvain_clusters.png"))
+    plt.close()
+
+    with open(os.path.join(outdir, "louvain_resumo.txt"), "w") as f:
+        f.write(f"Clusters: {len(set(labels))}\n")
+
+    print(f"[LOUVAIN] Resultado salvo em: {outdir}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tipo", choices=["sintetico", "real"], required=True)
+    parser.add_argument("--instancia", required=True)
+    args = parser.parse_args()
+
+    G = carregar_grafo(args.tipo, args.instancia)
+    particao = community_louvain.best_partition(G)
+    salvar_resultados(G, particao, args.tipo, args.instancia)

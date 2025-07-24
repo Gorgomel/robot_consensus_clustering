@@ -1,0 +1,3 @@
+Clusters: 1402
+FO1: 115563.14
+Tempo: 1.38 s

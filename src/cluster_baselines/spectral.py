@@ -1,39 +1,60 @@
 import os
-import numpy as np
+import argparse
 import networkx as nx
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.cluster import SpectralClustering
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-grafo_path = os.path.join(base_dir, 'data', 'grafo', 'grafo_area_maior.graphml')
-saida_dir = os.path.join(base_dir, 'data', 'cluster', 'spectral')
-os.makedirs(saida_dir, exist_ok=True)
 
-G = nx.read_graphml(grafo_path)
-G = nx.convert_node_labels_to_integers(G)
-adj_matrix = nx.to_numpy_array(G)
+def carregar_grafo(tipo, instancia):
+    if tipo == "sintetico":
+        grafo_path = f"data/grafo/epsilon_50.0_{instancia}_seed42/grafo.graphml"
+    else:
+        grafo_path = "data/grafo/roadnet_ca/grafo.graphml"
 
-n_clusters = 5
-modelo = SpectralClustering(n_clusters=n_clusters, affinity='precomputed', assign_labels='kmeans', random_state=42)
-labels = modelo.fit_predict(adj_matrix)
+    if not os.path.exists(grafo_path):
+        raise FileNotFoundError(f"Arquivo de grafo não encontrado: {grafo_path}")
 
-np.save(os.path.join(saida_dir, 'spectral_labels.npy'), labels)
+    G = nx.read_graphml(grafo_path)
+    for n in G.nodes:
+        for attr in ['x', 'y', 'vel']:
+            G.nodes[n][attr] = float(G.nodes[n][attr])
+    return G
 
-pos = {i: (float(G.nodes[i]['x']), float(G.nodes[i]['y'])) for i in G.nodes}
 
-plt.figure(figsize=(10, 8))
-nx.draw(G, pos, node_color=labels, node_size=25, cmap='tab10', with_labels=False, edge_color='lightgray')
-plt.title(f"Spectral Clustering - Robôs com base no grafo (k={n_clusters})")
-plt.tight_layout()
-plt.savefig(os.path.join(saida_dir, 'spectral_clusters.png'))
-plt.close()
+def aplicar_spectral(G):
+    A = nx.to_numpy_array(G)
+    n_clusters = 5
+    model = SpectralClustering(n_clusters=n_clusters, affinity='precomputed', assign_labels='kmeans', random_state=42)
+    labels = model.fit_predict(A)
+    return labels
 
-with open(os.path.join(saida_dir, 'spectral_resumo.txt'), 'w', encoding='utf-8') as f:
-    f.write("Clusterização Spectral - Grafo dos Robôs\n\n")
-    f.write(f"Nós: {G.number_of_nodes()}\n")
-    f.write(f"Arestas: {G.number_of_edges()}\n")
-    unique, counts = np.unique(labels, return_counts=True)
-    for u, c in zip(unique, counts):
-        f.write(f"Cluster {u}: {c} nós\n")
 
-print("Clusterização Spectral concluída e arquivos salvos.")
+def salvar_resultados(G, labels, tipo, instancia):
+    pasta_saida = f"data/baselines/spectral_{tipo}_{instancia}"
+    os.makedirs(pasta_saida, exist_ok=True)
+
+    np.save(os.path.join(pasta_saida, "labels.npy"), labels)
+
+    pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
+    plt.figure(figsize=(6, 6))
+    plt.scatter(pos[:, 0], pos[:, 1], c=labels, s=5)
+    plt.title("Spectral Clustering")
+    plt.tight_layout()
+    plt.savefig(os.path.join(pasta_saida, "scatter.png"))
+    plt.close()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tipo", required=True, choices=["sintetico", "real"])
+    parser.add_argument("--instancia", required=True)
+    args = parser.parse_args()
+
+    G = carregar_grafo(args.tipo, args.instancia)
+    labels = aplicar_spectral(G)
+    salvar_resultados(G, labels, args.tipo, args.instancia)
+
+
+if __name__ == "__main__":
+    main()

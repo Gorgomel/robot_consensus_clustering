@@ -1,39 +1,78 @@
 import os
+import sys
+import argparse
 import numpy as np
+import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from datetime import datetime
 
-base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-dados_path = os.path.join(base_dir, 'data', 'sinteticos', 'robos.npy')
-saida_dir = os.path.join(base_dir, 'data', 'cluster', 'kmeans')
-os.makedirs(saida_dir, exist_ok=True)
+# Caminhos
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+np.random.seed(42)
 
-robos = np.load(dados_path)
-X = robos  # todas as 5 features: x, y, v, θ, bateria
+# Funções auxiliares
+def gerar_labels(clusters, total_n):
+    labels = np.full(total_n, -1)
+    for i, cluster in enumerate(clusters):
+        for node in cluster:
+            labels[int(node)] = i
+    return labels
 
-n_clusters = 5
-modelo = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-labels = modelo.fit_predict(X)
+def scatter_clusters(G, clusters, path):
+    labels = gerar_labels(clusters, len(G.nodes))
+    pos = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
+    plt.figure(figsize=(6, 6))
+    plt.scatter(pos[:, 0], pos[:, 1], c=labels, s=5)
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
 
-np.save(os.path.join(saida_dir, 'kmeans_labels.npy'), labels)
+def salvar_saida(G, clusters, tipo, instancia):
+    dt = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pasta = os.path.join("data/cluster_baselines", f"{tipo}_{instancia}_kmeans_{dt}")
+    os.makedirs(pasta, exist_ok=True)
 
-plt.figure(figsize=(8, 6))
-scatter = plt.scatter(robos[:, 0], robos[:, 1], c=labels, cmap='tab10', s=30)
-plt.colorbar(scatter, label='Cluster KMeans')
-plt.xlabel('Posição X')
-plt.ylabel('Posição Y')
-plt.title(f'KMeans - Clusterização dos Robôs (k={n_clusters})')
-plt.grid(True)
-plt.tight_layout()
-plt.savefig(os.path.join(saida_dir, 'kmeans_clusters.png'))
-plt.close()
+    labels = gerar_labels(clusters, len(G.nodes))
+    np.save(os.path.join(pasta, "labels.npy"), labels)
+    with open(os.path.join(pasta, "resumo.txt"), "w") as f:
+        f.write(f"Clusters: {len(clusters)}\n")
+    scatter_clusters(G, clusters, os.path.join(pasta, "scatter.png"))
+    return pasta
 
-with open(os.path.join(saida_dir, 'kmeans_resumo.txt'), 'w', encoding='utf-8') as f:
-    f.write(f"Clusterização KMeans - Dados Sintéticos\n\n")
-    f.write(f"Número de robôs: {len(robos)}\n")
-    f.write(f"Número de clusters: {n_clusters}\n")
-    unique, counts = np.unique(labels, return_counts=True)
-    for u, c in zip(unique, counts):
-        f.write(f"Cluster {u}: {c} elementos\n")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tipo", choices=["sintetico", "real"], required=True)
+    parser.add_argument("--instancia", choices=["small", "medium", "large", "ca"], required=True)
+    args = parser.parse_args()
 
-print("KMeans concluído e arquivos salvos.")
+    # Caminho do grafo
+    if args.tipo == "sintetico":
+        grafo_path = os.path.join(ROOT, f"data/grafo/epsilon_50.0_{grafo_size(args.instancia)}_seed42/grafo.graphml")
+    else:
+        grafo_path = os.path.join(ROOT, "data/grafo/roadnet_ca/grafo.graphml")
+
+    # Carregar grafo
+    G = nx.read_graphml(grafo_path)
+    for n in G.nodes:
+        G.nodes[n]['x'] = float(G.nodes[n]['x'])
+        G.nodes[n]['y'] = float(G.nodes[n]['y'])
+
+    # Extrair posições
+    X = np.array([[G.nodes[n]['x'], G.nodes[n]['y']] for n in G.nodes])
+    n_clusters = max(2, int(len(G.nodes)**0.5 // 2))  # Heurística para número de clusters
+
+    # Rodar KMeans
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto').fit(X)
+    clusters = [[] for _ in range(n_clusters)]
+    for node, label in zip(G.nodes, kmeans.labels_):
+        clusters[label].append(node)
+
+    outdir = salvar_saida(G, clusters, args.tipo, args.instancia)
+    print(f"[KMEANS] Clusters: {n_clusters} | Saída em: {outdir}")
+
+def grafo_size(instancia):
+    return {"small": 100, "medium": 500, "large": 1000}[instancia]
+
+if __name__ == "__main__":
+    main()

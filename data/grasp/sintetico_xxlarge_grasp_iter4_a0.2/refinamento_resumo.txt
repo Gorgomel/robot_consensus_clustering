@@ -1,0 +1,3 @@
+Clusters: 2894
+FO1: 229996.59
+Tempo: 0.70 s

@@ -10,4 +10,4 @@ COPY . /app
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
-CMD ["python3", "src/pipeline.py"]
+CMD ["python3", "pipeline.py"]

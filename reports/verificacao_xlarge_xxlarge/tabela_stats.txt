@@ -1,0 +1,2 @@
+instancia  runs  FO1_medio  Tempo_medio  Tempo_min  Tempo_max
+xxlarge    6     174491.45  2639.06      669.74     6644.65

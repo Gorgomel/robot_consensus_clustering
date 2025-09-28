@@ -7,11 +7,12 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py[cod]
 
 # Dados gerados (resultados, gráficos, logs)
 data/best_improvement/
 data/cluster/
-data/fisrt_improvement/
+data/first_improvement/
 data/grafo/
 data/local_search/
 data/plots/
@@ -20,27 +21,33 @@ data/sinteticos/
 # Base externa grande (manter localmente, não subir)
 data/externo/roadNet-CA.txt.gz
 
+# Logs e temporários
+logs/
+*.log
+*.tmp
+*.bak
+*.swp
+pipeline_checkpoint.json
+
+# Arquivos grandes comuns (fora de reports/)
+*.npy
+*.pkl
+*.graphml
+*.out
+
 # Arquivos de metadados e estrutura
 estrutura_atual.txt
 estrutura_projeto.txt
 metadados.txt
 
-# Arquivos temporários e de backup
-*.log
-*.tmp
-*.bak
-*.swp
-
 # Executáveis ou atalhos do sistema
-*.sh
-*.bat
+# (mantemos scripts .sh e .bat versionados)
 *.lnk
 *.exe
 *.dll
 *.so
-*.out
 
-# Arquivos de configuração específicos de IDEs (VSCode, PyCharm etc.)
+# Configurações de IDEs
 .vscode/
 .idea/
 *.code-workspace
@@ -49,5 +56,6 @@ metadados.txt
 .DS_Store
 Thumbs.db
 
-# Arquivos de contexto interno
-contexto_projeto.md
+# Relatórios agregados: manter versionados
+!reports/**
+!.gitattributes

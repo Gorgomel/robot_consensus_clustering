@@ -1,0 +1,9 @@
+Arquivo                                                                  FO1        Tempo(s)
+logs/verificacao_xlarge_xxlarge/xlarge_run1_20250926-191507.resumo.txt   116964.73  669.74
+logs/verificacao_xlarge_xxlarge/xlarge_run2_20250926-192627.resumo.txt   116964.73  698.26
+logs/verificacao_xlarge_xxlarge/xlarge_run3_20250926-193815.resumo.txt   116964.73  674.14
+logs/verificacao_xlarge_xxlarge/xxlarge_run1_20250926-195206.resumo.txt  232018.18  6644.65
+logs/verificacao_xlarge_xxlarge/xxlarge_run2_20250927-231501.resumo.txt  232018.18  6644.65
+logs/verificacao_xlarge_xxlarge/xxlarge_run2_20250927-235631.resumo.txt  232018.18  3516.03
+logs/verificacao_xlarge_xxlarge/xxlarge_run3_20250927-231502.resumo.txt  232018.18  6644.65
+logs/verificacao_xlarge_xxlarge/xxlarge_run3_20250928-005531.resumo.txt  232018.18  3631.56

@@ -1,6 +1,5 @@
-Excelente. Com base no seu `README.md` atual, aqui está a **versão profissional atualizada e consolidada**, com foco em:
 ````markdown
-# 🤖 Projeto PA: Clusterização Otimizada para Coordenação de Veículos Autônomos
+#  Projeto PA: Clusterização Otimizada para Coordenação de Veículos Autônomos
 
 Este projeto implementa um pipeline completo para clusterização de veículos autônomos heterogêneos, modelados como vértices em grafos de visibilidade com atributos reais e simulados. O objetivo é aplicar heurísticas, refinamentos e metaheurísticas para encontrar **agrupamentos otimizados sob restrições de mobilidade, comunicação e segurança**.
 
@@ -8,7 +7,7 @@ Este projeto implementa um pipeline completo para clusterização de veículos a
 
 ---
 
-## 📌 Objetivos
+##  Objetivos
 
 - Resolver um problema **NP-difícil** de clusterização espacial com atributos vetoriais;
 - Comparar **heurísticas (gulosa, busca local)** e **metaheurísticas (em desenvolvimento)**;
@@ -17,7 +16,7 @@ Este projeto implementa um pipeline completo para clusterização de veículos a
 
 ---
 
-## ⚙️ Pipeline do Projeto
+##  Pipeline do Projeto
 
 1. **Geração de dados sintéticos com Perlin Noise**  
    `src/generate/gerar_dados.py`
@@ -39,7 +38,7 @@ Este projeto implementa um pipeline completo para clusterização de veículos a
 
 ---
 
-## 🧠 Função Objetivo (FO₁)
+##  Função Objetivo (FO₁)
 
 ```math
 \text{FO}_1(C) = \sum_{k=1}^{K} \left( \min_{i \in C_k} v_i \right) \cdot |C_k|
@@ -50,7 +49,7 @@ Este projeto implementa um pipeline completo para clusterização de veículos a
 
 ---
 
-## 📁 Estrutura do Projeto
+##  Estrutura do Projeto
 
 ```
 PA-Novo/
@@ -71,7 +70,7 @@ PA-Novo/
 
 ---
 
-## 🚀 Instruções Rápidas (Modo WSL)
+##  Instruções Rápidas (Modo WSL)
 
 ```bash
 # Clone o projeto
@@ -93,7 +92,7 @@ python src/heuristics/guloso_fo1.py --tipo sintetico --instancia small
 
 ---
 
-## 🐳 Execução via Docker (opcional)
+##  Execução via Docker (opcional)
 
 > Para automatizar execuções longas em outro computador (cluster pessoal):
 
@@ -106,7 +105,7 @@ docker run -v $(pwd):/app cluster-pa python src/heuristics/guloso_fo1.py ...
 
 ---
 
-## 📦 Datasets Externos
+##  Datasets Externos
 
 | Dataset                 | Utilização                          | Status        |
 | ----------------------- | ----------------------------------- | ------------- |
@@ -119,7 +118,7 @@ docker run -v $(pwd):/app cluster-pa python src/heuristics/guloso_fo1.py ...
 
 ---
 
-## 🧹 .gitignore (parcial)
+##  .gitignore (parcial)
 
 ```gitignore
 .venv*
@@ -143,11 +142,12 @@ data/externo/roadNet-CA.txt.gz
 
 ---
 
-## 📚 Referências
+##  Referências
 
 * Iterated Greedy Algorithm for Community Detection (2020)
 * Consensus Clustering by Graph-Based Approach (2018)
 * Clustering on Complex Graphs (SNAP, Reddit, RoadNet)
 
 ---
+
 
